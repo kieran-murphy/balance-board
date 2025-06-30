@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useMemo } from "react";
+import React, { createContext, useContext, useState, useEffect, useMemo } from "react";
 
 type Asset = { name: string; value: number; type: string };
 
@@ -13,9 +13,28 @@ type NetWorthContextType = {
 
 const NetWorthContext = createContext<NetWorthContextType | undefined>(undefined);
 
+const LOCAL_STORAGE_KEY = "net-worth-assets";
+
 export const NetWorthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [calculatedValues, setCalculatedValues] = useState<Record<string, number>>({});
+
+  // Load assets from localStorage once on mount
+  useEffect(() => {
+    const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (stored) {
+      try {
+        setAssets(JSON.parse(stored));
+      } catch {
+        console.error("Failed to parse stored assets");
+      }
+    }
+  }, []);
+
+  // Save assets to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(assets));
+  }, [assets]);
 
   const addAsset = (asset: Asset) => {
     setAssets((prev) => [...prev, asset]);
@@ -30,7 +49,8 @@ export const NetWorthProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     });
   };
 
-  const updateValue = (name: string, value: number) => {
+  const updateValue = (name: string, value: number | null) => {
+    if (value == null) return;
     setCalculatedValues((prev) => ({ ...prev, [name]: value }));
   };
 
